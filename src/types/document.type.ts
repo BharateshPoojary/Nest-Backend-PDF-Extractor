@@ -1,24 +1,7 @@
-export interface BankStatement {
-  fileName: string;
-  bankName: string;
-  accountHolderName: string;
-  accountNumber: string;
-  accountType?: string;
-  currency: string;
-  statementStartDate: string;
-  statementEndDate: string;
-  openingBalance: number;
-  closingBalance: number;
-  transactions: Transaction[];
-}
+import { BankStatement } from "src/bank-statement/interface/bank-statement.interface";
 
-export interface Transaction {
-  date: string;
-  description: string;
-  debitAmount: number | null;
-  creditAmount: number | null;
-  runningBalance: number;
-}
+
+
 
 export interface BankStatementDocument extends Document {
   jobId: string;
