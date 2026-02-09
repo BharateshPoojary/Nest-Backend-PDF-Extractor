@@ -26,12 +26,14 @@ import { s3Client, textractClient } from 'src/clients/aws.client';
 import type { Request } from 'express';
 import { ExtractionTemplate } from 'src/lib/prompt-template';
 import { ai } from 'src/clients/ai.client';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class BankStatementService {
   constructor(
     @InjectModel(ExtractedDocument.name)
     private ExtractedDocumentModal: Model<ExtractedDocument>,
+    private readonly configService: ConfigService,
   ) {}
 
   async handleUploadAndDocExtraction(file: Express.Multer.File) {
@@ -43,7 +45,7 @@ export class BankStatementService {
       const filePath = file.path;
       const fileBuffer = fs.readFileSync(filePath);
 
-      const bucketName = process.env.S3_BUCKET_NAME;
+      const bucketName = this.configService.get<string>('S3_BUCKET_NAME');
       const s3Key = `uploads/${Date.now()}~${file.originalname}`;
       console.log('File Buffer', fileBuffer);
       const s3Params: PutObjectCommandInput = {
@@ -65,8 +67,8 @@ export class BankStatementService {
           },
         },
         NotificationChannel: {
-          RoleArn: process.env.ROLE_ARN,
-          SNSTopicArn: process.env.SNS_TOPIC_ARN,
+          RoleArn: this.configService.get<string>('ROLE_ARN'),
+          SNSTopicArn: this.configService.get<string>('SNS_TOPIC_ARN'),
         },
       };
 

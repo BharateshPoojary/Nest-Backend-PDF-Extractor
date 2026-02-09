@@ -3,8 +3,7 @@ import {
   TextractClient,
   type TextractClientConfig,
 } from '@aws-sdk/client-textract';
-import dotenv from 'dotenv';
-dotenv.config();
+
 const textractconfig: TextractClientConfig = {
   region: process.env.REGION as string,
   credentials: {

@@ -13,9 +13,13 @@ import { UploadedFile } from '@nestjs/common';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import type { Request } from 'express';
+import { ConfigService } from '@nestjs/config';
 @Controller()
 export class BankStatementController {
-  constructor(private readonly BankService: BankStatementService) {}
+  constructor(
+    private readonly BankService: BankStatementService,
+
+  ) {}
 
   @Post('upload')
   @UseInterceptors(
