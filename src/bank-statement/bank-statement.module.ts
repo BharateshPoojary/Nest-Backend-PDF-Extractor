@@ -1,17 +1,20 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+
+import { BankStatementService } from './bank-statement.service';
+import { BankStatementController } from './bank-statement.controller';
 import {
-  BankStatement,
-  BankStatementSchema,
+  ExtractedDocument,
+  ExtractedDocumentSchema,
 } from './schema/bank-statement.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
-      { name: BankStatement.name, schema: BankStatementSchema },
+      { name: ExtractedDocument.name, schema: ExtractedDocumentSchema },
     ]),
   ],
-  providers: [],
-  controllers: [],
+  providers: [BankStatementService],
+  controllers: [BankStatementController],
 })
 export class BankStatementModule {}

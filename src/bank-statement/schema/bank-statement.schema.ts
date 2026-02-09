@@ -1,8 +1,38 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
-import { Transaction, TransactionSchema } from '../../transaction/schema/transaction.schema';
 
-export type BankStatementDocument = HydratedDocument<BankStatement>;
+export type ExtractedDocumentType = HydratedDocument<ExtractedDocument>;
+
+
+@Schema()
+class Transaction {
+  @Prop({
+    required: true,
+  })
+  date: string;
+
+  @Prop({
+    required: true,
+  })
+  description: string;
+
+  @Prop({
+    required: true,
+  })
+  debitAmount: number;
+
+  @Prop({
+    required: true,
+  })
+  creditAmount: number;
+
+  @Prop({
+    required: true,
+  })
+  runningBalance: number;
+}
+
+const TransactionSchema = SchemaFactory.createForClass(Transaction);
 
 @Schema()
 export class BankStatement {
@@ -66,4 +96,26 @@ export class BankStatement {
 
 export const BankStatementSchema = SchemaFactory.createForClass(BankStatement);
 
-   
+@Schema({ timestamps: true })
+export class ExtractedDocument {
+  @Prop({
+    required: true,
+    unique: true,
+  })
+  jobId: String;
+
+  @Prop({
+    required: true,
+    default: [],
+    type: [BankStatementSchema],
+  })
+  data: BankStatement[];
+  @Prop({
+    enum: ['PROCESSING', 'COMPLETED', 'FAILED'],
+    default: 'PROCESSING',
+  })
+  status: String;
+}
+
+export const ExtractedDocumentSchema =
+  SchemaFactory.createForClass(ExtractedDocument);
