@@ -25,8 +25,9 @@ import {
 import { s3Client, textractClient } from 'src/clients/aws.client';
 import type { Request } from 'express';
 import { ExtractionTemplate } from 'src/lib/prompt-template';
-import { ai } from 'src/clients/ai.client';
+// import { ai } from 'src/clients/ai.client';
 import { ConfigService } from '@nestjs/config';
+import { GoogleGenAI } from '@google/genai';
 
 @Injectable()
 export class BankStatementService {
@@ -223,6 +224,7 @@ export class BankStatementService {
 
     return resultantData;
   }
+  
   private async normalizeWithAI(
     rawText: string,
     fileName: string,
@@ -232,6 +234,10 @@ export class BankStatementService {
 
     try {
       console.log('Raw Text', rawText);
+      // if(ai instanceof GoogleGenAI){
+
+      // }
+      let ai = new GoogleGenAI({});
       const result = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
