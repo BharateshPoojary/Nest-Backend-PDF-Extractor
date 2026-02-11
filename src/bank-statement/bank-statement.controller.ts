@@ -5,7 +5,6 @@ import {
   Get,
   Param,
   Post,
-  Req,
   UseInterceptors,
 } from '@nestjs/common';
 import { BankStatementService } from './bank-statement.service';
@@ -13,8 +12,6 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadedFile } from '@nestjs/common';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
-import type { Request } from 'express';
-import { ConfigService } from '@nestjs/config';
 @Controller()
 export class BankStatementController {
   constructor(
@@ -26,7 +23,7 @@ export class BankStatementController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
-        destination: './uploads',
+        destination: '/tmp/uploads',
         filename: (req, file, callback) => {
           const uniqueSuffix =
             Date.now() + '-' + Math.round(Math.random() * 1e9);
