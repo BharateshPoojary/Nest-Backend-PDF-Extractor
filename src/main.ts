@@ -8,6 +8,6 @@ async function bootstrap() {
     await NestFactory.create<NestExpressApplication>(AppModule, {
       abortOnError: false,
     });
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(process.env.PORT ?? 8002);
 }
 bootstrap();
