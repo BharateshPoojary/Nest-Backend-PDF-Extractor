@@ -22,12 +22,11 @@ import {
   BankStatement,
   ExtractedDocument,
 } from './schema/bank-statement.schema';
-import { s3Client, textractClient } from 'src/clients/aws.client';
+import { AWSClient } from 'src/clients/aws.client';
+import { AIClient } from 'src/clients/ai.client';
 import type { Request } from 'express';
 import { ExtractionTemplate } from 'src/lib/prompt-template';
-// import { ai } from 'src/clients/ai.client';
 import { ConfigService } from '@nestjs/config';
-import { GoogleGenAI } from '@google/genai';
 
 @Injectable()
 export class BankStatementService {
@@ -57,7 +56,7 @@ export class BankStatementService {
       };
 
       const s3Command = new PutObjectCommand(s3Params);
-      await s3Client.send(s3Command);
+      await AWSClient.getInstance().s3Client.send(s3Command);
       console.log(`File uploaded to S3: ${s3Key}`);
 
       const textractParams: StartDocumentTextDetectionCommandInput = {
@@ -76,7 +75,7 @@ export class BankStatementService {
       const textractCommand = new StartDocumentTextDetectionCommand(
         textractParams,
       );
-      const data = await textractClient.send(textractCommand);
+      const data = await AWSClient.getInstance().textractClient.send(textractCommand);
       console.log('Textract job started:', data.JobId);
 
       if (data.JobId) {
@@ -105,8 +104,7 @@ export class BankStatementService {
     }
   }
 
-  async handleNotification(req: Request): Promise<string> {
-    let body = req.body;
+  async handleNotification(body: any): Promise<string> {
     try {
       // Parse the body if it's a string
       if (typeof body === 'string') {
@@ -179,7 +177,7 @@ export class BankStatementService {
       });
 
       const response: GetDocumentTextDetectionCommandOutput =
-        await textractClient.send(command);
+        await AWSClient.getInstance().textractClient.send(command);
 
       if (response.JobStatus === 'FAILED') {
         await this.ExtractedDocumentModal.findOneAndUpdate(
@@ -224,7 +222,7 @@ export class BankStatementService {
 
     return resultantData;
   }
-  
+
   private async normalizeWithAI(
     rawText: string,
     fileName: string,
@@ -234,11 +232,8 @@ export class BankStatementService {
 
     try {
       console.log('Raw Text', rawText);
-      // if(ai instanceof GoogleGenAI){
 
-      // }
-      let ai = new GoogleGenAI({});
-      const result = await ai.models.generateContent({
+      const result = await AIClient.getInstance().client.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
       });

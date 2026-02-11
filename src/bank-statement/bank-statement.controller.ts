@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Get,
   Param,
@@ -54,9 +55,10 @@ export class BankStatementController {
   }> {
     return this.BankService.handleUploadAndDocExtraction(file);
   }
+  
   @Post('notify')
-  handleNotification(@Req() req: Request) {
-    return this.BankService.handleNotification(req);
+  handleNotification(@Body() body: any) {
+    return this.BankService.handleNotification(body);
   }
   @Get(':jobId')
   getDocById(@Param('jobId') jobId: string) {

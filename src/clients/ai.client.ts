@@ -1,6 +1,23 @@
 import { GoogleGenAI } from '@google/genai';
 
-// The client gets the API key from the environment variable `GEMINI_API_KEY`.
-export const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-});
+export class AIClient {
+  private static instance: AIClient;
+  private _client: GoogleGenAI;
+
+  private constructor() {
+    this._client = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+    });
+  }
+
+  static getInstance(): AIClient {
+    if (!AIClient.instance) {
+      AIClient.instance = new AIClient();
+    }
+    return AIClient.instance;
+  }
+
+  get client(): GoogleGenAI {
+    return this._client;
+  }
+}
