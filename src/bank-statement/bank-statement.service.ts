@@ -12,9 +12,13 @@ import {
   GetDocumentTextDetectionCommand,
   type StartDocumentTextDetectionCommandInput,
   type GetDocumentTextDetectionCommandOutput,
+  TextractClient,
+  TextractClientConfig,
 } from '@aws-sdk/client-textract';
 import {
   PutObjectCommand,
+  S3Client,
+  S3ClientConfig,
   type PutObjectCommandInput,
 } from '@aws-sdk/client-s3';
 
@@ -22,12 +26,65 @@ import {
   BankStatement,
   ExtractedDocument,
 } from './schema/bank-statement.schema';
-import { AWSClient } from 'src/clients/aws.client';
-import { AIClient } from 'src/clients/ai.client';
-import type { Request } from 'express';
 import { ExtractionTemplate } from 'src/lib/prompt-template';
 import { ConfigService } from '@nestjs/config';
+import { GoogleGenAI } from '@google/genai';
+class AIClientService {
+  private static instance: AIClientService;
+  private _client: GoogleGenAI;
 
+  private constructor() {
+    this._client = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+    });
+  }
+
+  static getInstance(): AIClientService {
+    if (!AIClientService.instance) {
+      AIClientService.instance = new AIClientService();
+    }
+    return AIClientService.instance;
+  }
+
+  get client(): GoogleGenAI {
+    return this._client;
+  }
+}
+
+class AWSClientService {
+  private static instance: AWSClientService;
+  private _s3Client: S3Client;
+  private _textractClient: TextractClient;
+
+  private constructor() {
+    const credentials = {
+      accessKeyId: process.env.ACCESS_KEY as string,
+      secretAccessKey: process.env.SECRET_KEY as string,
+    };
+    const region = process.env.REGION as string;
+
+    const s3Config: S3ClientConfig = { region, credentials };
+    const textractConfig: TextractClientConfig = { region, credentials };
+
+    this._s3Client = new S3Client(s3Config);
+    this._textractClient = new TextractClient(textractConfig);
+  }
+
+  static getInstance(): AWSClientService {
+    if (!AWSClientService.instance) {
+      AWSClientService.instance = new AWSClientService();
+    }
+    return AWSClientService.instance;
+  }
+
+  get s3Client(): S3Client {
+    return this._s3Client;
+  }
+
+  get textractClient(): TextractClient {
+    return this._textractClient;
+  }
+}
 @Injectable()
 export class BankStatementService {
   constructor(
@@ -56,7 +113,7 @@ export class BankStatementService {
       };
 
       const s3Command = new PutObjectCommand(s3Params);
-      await AWSClient.getInstance().s3Client.send(s3Command);
+      await AWSClientService.getInstance().s3Client.send(s3Command);
       console.log(`File uploaded to S3: ${s3Key}`);
 
       const textractParams: StartDocumentTextDetectionCommandInput = {
@@ -75,7 +132,10 @@ export class BankStatementService {
       const textractCommand = new StartDocumentTextDetectionCommand(
         textractParams,
       );
-      const data = await AWSClient.getInstance().textractClient.send(textractCommand);
+      const data =
+        await AWSClientService.getInstance().textractClient.send(
+          textractCommand,
+        );
       console.log('Textract job started:', data.JobId);
 
       if (data.JobId) {
@@ -177,7 +237,7 @@ export class BankStatementService {
       });
 
       const response: GetDocumentTextDetectionCommandOutput =
-        await AWSClient.getInstance().textractClient.send(command);
+        await AWSClientService.getInstance().textractClient.send(command);
 
       if (response.JobStatus === 'FAILED') {
         await this.ExtractedDocumentModal.findOneAndUpdate(
@@ -233,10 +293,11 @@ export class BankStatementService {
     try {
       console.log('Raw Text', rawText);
 
-      const result = await AIClient.getInstance().client.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-      });
+      const result =
+        await AIClientService.getInstance().client.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: prompt,
+        });
       const response = result.text;
       // console.log("Response", response);
       // Remove markdown code blocks if present
