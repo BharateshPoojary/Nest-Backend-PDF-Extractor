@@ -12,6 +12,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadedFile } from '@nestjs/common';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+
 @Controller()
 export class BankStatementController {
   constructor(private readonly BankService: BankStatementService) {}
@@ -52,6 +53,10 @@ export class BankStatementController {
 
   @Post('notify')
   handleNotification(@Body() body: any) {
+    console.log('56', body);
+    if (!body || Object.keys(body).length === 0) {
+      throw new BadRequestException('Request body is empty');
+    }
     return this.BankService.handleNotification(body);
   }
   @Get('bank')
