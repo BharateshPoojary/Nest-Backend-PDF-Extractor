@@ -28,68 +28,18 @@ import {
 } from './schema/bank-statement.schema';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenAI } from '@google/genai';
-class AIClientService {
-  private static instance: AIClientService;
-  private _client: GoogleGenAI;
+import { AWSClientService } from 'src/aws/aws.service';
+import { AIClientService } from 'src/ai/ai.service';
+import { BankStatementExtractor } from 'src/aws/prompt/extractor-prompt';
 
-  private constructor() {
-    this._client = new GoogleGenAI({
-      apiKey: process.env.GEMINI_API_KEY,
-    });
-  }
-
-  static getInstance(): AIClientService {
-    if (!AIClientService.instance) {
-      AIClientService.instance = new AIClientService();
-    }
-    return AIClientService.instance;
-  }
-
-  get client(): GoogleGenAI {
-    return this._client;
-  }
-}
-
-class AWSClientService {
-  private static instance: AWSClientService;
-  private _s3Client: S3Client;
-  private _textractClient: TextractClient;
-
-  private constructor() {
-    const credentials = {
-      accessKeyId: process.env.ACCESS_KEY as string,
-      secretAccessKey: process.env.SECRET_KEY as string,
-    };
-    const region = process.env.REGION as string;
-
-    const s3Config: S3ClientConfig = { region, credentials };
-    const textractConfig: TextractClientConfig = { region, credentials };
-
-    this._s3Client = new S3Client(s3Config);
-    this._textractClient = new TextractClient(textractConfig);
-  }
-
-  static getInstance(): AWSClientService {
-    if (!AWSClientService.instance) {
-      AWSClientService.instance = new AWSClientService();
-    }
-    return AWSClientService.instance;
-  }
-
-  get s3Client(): S3Client {
-    return this._s3Client;
-  }
-
-  get textractClient(): TextractClient {
-    return this._textractClient;
-  }
-}
 @Injectable()
 export class BankStatementService {
   constructor(
     @InjectModel(ExtractedDocument.name)
     private ExtractedDocumentModal: Model<ExtractedDocument>,
     private readonly configService: ConfigService,
+    private readonly awsClientService: AWSClientService,
+    private readonly aiClientService: AIClientService,
   ) {}
 
   async handleUploadAndDocExtraction(file: Express.Multer.File) {
@@ -112,7 +62,7 @@ export class BankStatementService {
       };
 
       const s3Command = new PutObjectCommand(s3Params);
-      await AWSClientService.getInstance().s3Client.send(s3Command);
+      await this.awsClientService.getS3Client().send(s3Command);
       console.log(`File uploaded to S3: ${s3Key}`);
 
       const textractParams: StartDocumentTextDetectionCommandInput = {
@@ -132,7 +82,7 @@ export class BankStatementService {
         textractParams,
       );
       const data =
-        await AWSClientService.getInstance().textractClient.send(
+        await this.awsClientService.getTextractClient().send(
           textractCommand,
         );
       console.log('Textract job started:', data.JobId);
@@ -166,7 +116,7 @@ export class BankStatementService {
 
   async handleNotification(body: any): Promise<string> {
     try {
-      console.log("Body ",body);
+      console.log('Body ', body);
       // Parse the body if it's a string
       if (typeof body === 'string') {
         body = JSON.parse(body);
@@ -238,7 +188,7 @@ export class BankStatementService {
       });
 
       const response: GetDocumentTextDetectionCommandOutput =
-        await AWSClientService.getInstance().textractClient.send(command);
+        await this.awsClientService.getTextractClient().send(command);
 
       if (response.JobStatus === 'FAILED') {
         await this.ExtractedDocumentModal.findOneAndUpdate(
@@ -298,7 +248,7 @@ export class BankStatementService {
       console.log('Raw Text', rawText);
 
       const result =
-        await AIClientService.getInstance().client.models.generateContent({
+        await this.aiClientService.getClient().models.generateContent({
           model: 'gemini-2.5-flash',
           contents: prompt,
         });
@@ -345,61 +295,5 @@ export class BankStatementService {
       status: document.status,
       data: document.data,
     };
-  }
-}
-
-export class BankStatementExtractor {
-  static getExtractionTemplate(rawText: string, fileName: string): string {
-    return `
-You are a bank statement parser. Extract structured data from the following bank statement text.
-
-IMPORTANT INSTRUCTIONS:
-1. Identify all bank accounts in the document
-2. If multiple accounts exist, extract each separately
-3. Normalize inconsistent labels (e.g., "Acc No", "Account #", "A/C No" → "accountNumber")
-4. Extract ALL transactions with proper date parsing
-5. Handle multiple date formats (DD/MM/YYYY, MM/DD/YYYY, etc.)
-6. Parse monetary values correctly (handle commas, decimals, currency symbols)
-7. Distinguish between debit and credit columns
-8. Calculate running balance if not provided
-
-OUTPUT FORMAT:
-Return ONLY a valid JSON array with this exact schema (no markdown, no explanation):
-
-[
-  {
-    "fileName": "${fileName}",
-    "bankName": "string",
-    "accountHolderName": "string",
-    "accountNumber": "string",
-    "accountType": "Savings|Current|null",
-    "currency": "INR|USD|EUR etc",
-    "statementStartDate": "YYYY-MM-DD",
-    "statementEndDate": "YYYY-MM-DD",
-    "openingBalance": number,
-    "closingBalance": number,
-    "transactions": [
-      {
-        "date": "YYYY-MM-DD",
-        "description": "string",
-        "debitAmount": number or null,
-        "creditAmount": number or null,
-        "runningBalance": number
-      }
-    ]
-  }
-]
-
-RULES:
-- Return empty array [] if no bank statement found
-- All dates must be in YYYY-MM-DD format
-- All amounts must be numbers (no strings, no currency symbols)
-- If debit/credit cannot be determined, put amount in creditAmount for deposits, debitAmount for withdrawals
-- Preserve all transaction descriptions exactly as they appear
-- If opening/closing balance not found, calculate from transactions
-
-RAW BANK STATEMENT TEXT:
-${rawText}
-`;
   }
 }
