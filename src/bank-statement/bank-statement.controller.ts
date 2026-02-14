@@ -5,6 +5,8 @@ import {
   Get,
   Param,
   Post,
+  type RawBodyRequest,
+  Req,
   UseInterceptors,
 } from '@nestjs/common';
 import { BankStatementService } from './bank-statement.service';
@@ -51,14 +53,34 @@ export class BankStatementController {
     return this.BankService.handleUploadAndDocExtraction(file);
   }
 
+
+
+
   @Post('notify')
-  handleNotification(@Body() body: any) {
-    console.log('56', body);
+  async handleNotification(@Req() req: RawBodyRequest<Request>) {
+    // Parse the raw body as text, then parse as JSON
+    const rawBody = req.rawBody?.toString('utf-8') || req.body;
+    
+    let body;
+    if (typeof rawBody === 'string') {
+      try {
+        body = JSON.parse(rawBody);
+      } catch (e) {
+        body = rawBody;
+      }
+    } else {
+      body = rawBody;
+    }
+
+    console.log('Parsed body:', body);
+    
     if (!body || Object.keys(body).length === 0) {
       throw new BadRequestException('Request body is empty');
     }
+    
     return this.BankService.handleNotification(body);
   }
+
   @Get('bank')
   getIndexPage() {
     return { message: 'Hello' };
