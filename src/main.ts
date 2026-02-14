@@ -7,7 +7,8 @@ async function bootstrap() {
   const app: INestApplication =
     await NestFactory.create<NestExpressApplication>(AppModule, {
       abortOnError: false,
+      cors: true,
     });
-  await app.listen(3000);
+  await app.listen(3001);
 }
 bootstrap();

@@ -157,6 +157,7 @@ export class BankStatementService {
         s3Key: s3Key,
       };
     } catch (error) {
+      console.error(error);
       throw new InternalServerErrorException(
         error instanceof Error ? error.message : 'Error Occurred',
       );
@@ -169,7 +170,7 @@ export class BankStatementService {
       if (typeof body === 'string') {
         body = JSON.parse(body);
       }
-
+      console.log('I  am notified');
       // Handle subscription confirmation
       if (body.Type === 'SubscriptionConfirmation') {
         const subscribeURL = body.SubscribeURL;
