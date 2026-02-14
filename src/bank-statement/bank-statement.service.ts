@@ -166,6 +166,7 @@ export class BankStatementService {
 
   async handleNotification(body: any): Promise<string> {
     try {
+      console.log("Body ",body);
       // Parse the body if it's a string
       if (typeof body === 'string') {
         body = JSON.parse(body);
