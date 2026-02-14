@@ -14,10 +14,7 @@ import { diskStorage } from 'multer';
 import { extname } from 'path';
 @Controller()
 export class BankStatementController {
-  constructor(
-    private readonly BankService: BankStatementService,
-
-  ) {}
+  constructor(private readonly BankService: BankStatementService) {}
 
   @Post('upload')
   @UseInterceptors(
@@ -52,10 +49,14 @@ export class BankStatementController {
   }> {
     return this.BankService.handleUploadAndDocExtraction(file);
   }
-  
+
   @Post('notify')
   handleNotification(@Body() body: any) {
     return this.BankService.handleNotification(body);
+  }
+  @Get('bank')
+  getIndexPage() {
+    return { message: 'Hello' };
   }
   @Get(':jobId')
   getDocById(@Param('jobId') jobId: string) {
