@@ -59,7 +59,7 @@ export class BankStatementController {
     }
     return this.BankService.handleNotification(body);
   }
-  @Get('bank')
+  @Get('test')
   getIndexPage() {
     return { message: 'Hello' };
   }
