@@ -5,4 +5,4 @@ import { AIClientService } from './ai.service';
   providers: [AIClientService],
   exports: [AIClientService],
 })
-export class BankStatementModule {}
+export class AIModule {}

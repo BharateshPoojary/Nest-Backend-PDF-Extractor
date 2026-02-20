@@ -12,13 +12,9 @@ import {
   GetDocumentTextDetectionCommand,
   type StartDocumentTextDetectionCommandInput,
   type GetDocumentTextDetectionCommandOutput,
-  TextractClient,
-  TextractClientConfig,
 } from '@aws-sdk/client-textract';
 import {
   PutObjectCommand,
-  S3Client,
-  S3ClientConfig,
   type PutObjectCommandInput,
 } from '@aws-sdk/client-s3';
 
@@ -27,7 +23,6 @@ import {
   ExtractedDocument,
 } from './schema/bank-statement.schema';
 import { ConfigService } from '@nestjs/config';
-import { GoogleGenAI } from '@google/genai';
 import { AWSClientService } from 'src/aws/aws.service';
 import { AIClientService } from 'src/ai/ai.service';
 import { BankStatementExtractor } from 'src/aws/prompt/extractor-prompt';

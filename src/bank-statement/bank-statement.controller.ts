@@ -65,6 +65,9 @@ export class BankStatementController {
   }
   @Get(':jobId')
   getDocById(@Param('jobId') jobId: string) {
+    if (!jobId || jobId.trim().length === 0) {
+      throw new BadRequestException('Invalid jobId');
+    }
     return this.BankService.getByJobId(jobId);
   }
 }

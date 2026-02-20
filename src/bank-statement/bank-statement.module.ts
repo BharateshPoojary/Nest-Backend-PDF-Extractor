@@ -9,14 +9,16 @@ import {
 } from './schema/bank-statement.schema';
 import { AWSClientService } from 'src/aws/aws.service';
 import { AIClientService } from 'src/ai/ai.service';
+import { AIModule } from 'src/ai/ai.module';
+import { AWSModule } from 'src/aws/aws.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: ExtractedDocument.name, schema: ExtractedDocumentSchema },
     ]),
-    AWSClientService,
-    AIClientService,
+   AIModule,
+   AWSModule
   ],
   providers: [BankStatementService],
   controllers: [BankStatementController],

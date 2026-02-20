@@ -5,4 +5,4 @@ import { AWSClientService } from './aws.service';
   providers: [AWSClientService],
   exports: [AWSClientService],
 })
-export class BankStatementModule {}
+export class AWSModule {}
