@@ -7,8 +7,6 @@ import {
   ExtractedDocument,
   ExtractedDocumentSchema,
 } from './schema/bank-statement.schema';
-import { AWSClientService } from 'src/aws/aws.service';
-import { AIClientService } from 'src/ai/ai.service';
 import { AIModule } from 'src/ai/ai.module';
 import { AWSModule } from 'src/aws/aws.module';
 

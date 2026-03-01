@@ -7,6 +7,8 @@ import { getModelToken } from '@nestjs/mongoose';
 import { ExtractedDocument } from 'src/bank-statement/schema/bank-statement.schema';
 import { Model } from 'mongoose';
 import { AppModule } from '../src/app.module';
+import { AIModule } from 'src/ai/ai.module';
+import { AWSModule } from 'src/aws/aws.module';
 
 describe('BankStatementController (e2e)', () => {
   let app: INestApplication<App>;
@@ -14,7 +16,7 @@ describe('BankStatementController (e2e)', () => {
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
+      imports:[AppModule]
     }).compile();
 
     app = moduleFixture.createNestApplication();

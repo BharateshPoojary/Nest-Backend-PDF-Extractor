@@ -2,25 +2,50 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BankStatementController } from './bank-statement.controller';
 import { BankStatementService } from './bank-statement.service';
 import { BadRequestException } from '@nestjs/common';
-
+import { ConfigService } from '@nestjs/config';
+import { getModelToken } from '@nestjs/mongoose';
+import { ExtractedDocument } from './schema/bank-statement.schema';
+import { AWSClientService } from 'src/aws/aws.service';
+import { AIClientService } from 'src/ai/ai.service';
+//The main intention of this testing is to see whethercontroller is correctly calling the respective service methods or not
 describe('BankStatementController', () => {
   let controller: BankStatementController;
   let bankService: BankStatementService;
-
-  // Mock the service with jest functions
-  const mockBankStatementService = {
-    handleUploadAndDocExtraction: jest.fn(),
-    handleNotification: jest.fn(),
-    getByJobId: jest.fn(),
-  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [BankStatementController],
       providers: [
+        BankStatementService,
         {
-          provide: BankStatementService,
-          useValue: mockBankStatementService,
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn().mockReturnValue('mock-value'),
+          },
+        },
+        {
+          provide: getModelToken(ExtractedDocument.name),
+          useValue: {
+            find: jest.fn(),
+            findOne: jest.fn(),
+            create: jest.fn(),
+            save: jest.fn(),
+            findByIdAndUpdate: jest.fn(),
+            deleteOne: jest.fn(),
+          },
+        },
+        {
+          provide: AWSClientService,
+          useValue: {
+            getS3Client: jest.fn(),
+            getTextractClient: jest.fn(),
+          },
+        },
+        {
+          provide: AIClientService,
+          useValue: {
+            getClient: jest.fn(),
+          },
         },
       ],
     }).compile();
@@ -29,9 +54,8 @@ describe('BankStatementController', () => {
     bankService = module.get<BankStatementService>(BankStatementService);
   });
 
-  // Reset mocks after each test to avoid interference
   afterEach(() => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   // ─── getIndexPage ────────────────────────────────────────────────
@@ -59,9 +83,9 @@ describe('BankStatementController', () => {
         s3Key: 's3/test.pdf',
       };
 
-      mockBankStatementService.handleUploadAndDocExtraction.mockResolvedValue(
-        mockResponse,
-      );
+      jest
+        .spyOn(bankService, 'handleUploadAndDocExtraction')
+        .mockResolvedValue(mockResponse);
 
       const result = await controller.uploadFile(mockFile);
 
@@ -74,9 +98,10 @@ describe('BankStatementController', () => {
     it('should throw if service throws', async () => {
       const mockFile = { originalname: 'test.pdf' } as Express.Multer.File;
 
-      mockBankStatementService.handleUploadAndDocExtraction.mockRejectedValue(
-        new BadRequestException('Upload failed'),
-      );
+      // ✅ spyOn to simulate rejection
+      jest
+        .spyOn(bankService, 'handleUploadAndDocExtraction')
+        .mockRejectedValue(new BadRequestException('Upload failed'));
 
       await expect(controller.uploadFile(mockFile)).rejects.toThrow(
         BadRequestException,
@@ -87,32 +112,39 @@ describe('BankStatementController', () => {
   // ─── handleNotification ──────────────────────────────────────────
   describe('handleNotification', () => {
     it('should call handleNotification with body and return result', async () => {
-      const mockBody = { jobId: 'job-123', status: 'completed' };
-      const mockResponse = { success: true };
+      const mockBody = { jobId: 'job-123', status: 'completed' }; //This will be sent by SNS
+      const mockResponse = 'Message Received';
 
-      mockBankStatementService.handleNotification.mockResolvedValue(
-        mockResponse,
-      );
+      jest
+        .spyOn(bankService, 'handleNotification')
+        .mockResolvedValue(mockResponse); //First mocking the service
 
-      const result = await controller.handleNotification(mockBody);
+      const result = await controller.handleNotification(mockBody); //calling the controller with any required payload
 
       expect(bankService.handleNotification).toHaveBeenCalledWith(mockBody);
+      //Once the controller is called We are now ensuring  that the controller correctly passed the valid args to the  service here (handleNotification)
       expect(result).toEqual(mockResponse);
+      //Lastly we are expecting that the result of the controller must match  the mock response
     });
 
     it('should throw BadRequestException when body is empty', async () => {
+      const spy = jest.spyOn(bankService, 'handleNotification');
+
       expect(() => controller.handleNotification({})).toThrow(
         BadRequestException,
       );
-      // Service should never be called with empty body
-      expect(bankService.handleNotification).not.toHaveBeenCalled();
+
+      // ✅ Service should never be called with empty body
+      expect(spy).not.toHaveBeenCalled();
     });
 
     it('should throw BadRequestException when body is null', async () => {
+      const spy = jest.spyOn(bankService, 'handleNotification');
+
       expect(() => controller.handleNotification(null)).toThrow(
         BadRequestException,
       );
-      expect(bankService.handleNotification).not.toHaveBeenCalled();
+      expect(spy).not.toHaveBeenCalled();
     });
   });
 
@@ -120,9 +152,10 @@ describe('BankStatementController', () => {
   describe('getDocById', () => {
     it('should call getByJobId with jobId and return result', async () => {
       const mockJobId = 'job-123';
-      const mockResponse = { jobId: mockJobId, status: 'completed', data: {} };
+      const mockResponse = { jobId: mockJobId, status: 'completed', data: [] };
 
-      mockBankStatementService.getByJobId.mockResolvedValue(mockResponse);
+      // ✅ spyOn instance method
+      jest.spyOn(bankService, 'getByJobId').mockResolvedValue(mockResponse);
 
       const result = await controller.getDocById(mockJobId);
 
@@ -131,9 +164,9 @@ describe('BankStatementController', () => {
     });
 
     it('should throw if jobId does not exist', async () => {
-      mockBankStatementService.getByJobId.mockRejectedValue(
-        new BadRequestException('Job not found'),
-      );
+      jest
+        .spyOn(bankService, 'getByJobId')
+        .mockRejectedValue(new BadRequestException('Job not found'));
 
       await expect(controller.getDocById('invalid-id')).rejects.toThrow(
         BadRequestException,
